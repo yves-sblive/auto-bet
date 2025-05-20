@@ -18,6 +18,8 @@ const config = {
   
   // Additional options
   randomBetSide: process.env.RANDOM_BET_SIDE === 'true',              // Randomize which side to bet on
+  waitForSuccessNotification: process.env.WAIT_FOR_SUCCESS_NOTIFICATION === 'true', // Wait for success notification
+  successNotificationTimeout: parseInt(process.env.SUCCESS_NOTIFICATION_TIMEOUT) || 10000, // Timeout for success notification
   
   // Browser options
   browser: process.env.BROWSER || 'chrome',                        // Which browser to use (chrome or firefox)
@@ -276,6 +278,13 @@ async function runBettingBot() {
     while (running && (config.maxBets === 0 || betCount < config.maxBets)) {
       console.log(`\n--- Starting bet #${betCount + 1} ---`);
       
+      // Press ESC at the beginning to ensure no modals are open
+      try {
+        await page.keyboard.press('Escape');
+      } catch (escError) {
+        console.log(`Error pressing initial ESC: ${escError.message}`);
+      }
+      
       // Check if betting is open
       try {
         await page.waitForSelector('text=BETTING: OPEN', { timeout: 10000 });
@@ -354,15 +363,39 @@ async function runBettingBot() {
         await page.click('button:has-text("Confirm Bet")');
         console.log('Bet confirmed!');
         
+        // Press ESC to close any lingering modals
+        await page.keyboard.press('Escape');
+        console.log('Pressed ESC to close any lingering modals');
+        
+        // Wait for the success notification to appear if configured
+        if (config.waitForSuccessNotification) {
+          console.log('Waiting for "BET CREATED SUCCESSFULLY" notification...');
+          try {
+            await page.waitForSelector('text=BET CREATED SUCCESSFULLY', { timeout: config.successNotificationTimeout });
+            console.log('✅ Success notification received - bet was successfully created');
+          } catch (notificationError) {
+            console.log('⚠️ No success notification received, but continuing anyway');
+          }
+        }
+        
         // Increment bet count
         betCount++;
       } catch (error) {
-        console.log(`No confirmation modal appeared: ${error.message}`);
+        console.log(`No confirmation modal appeared or error clicking button: ${error.message}`);
+        
+        // Press ESC to close any lingering modals in case of error
+        try {
+          await page.keyboard.press('Escape');
+          console.log('Pressed ESC to close any possible modals after error');
+        } catch (escError) {
+          console.log(`Error pressing ESC: ${escError.message}`);
+        }
+        
         console.log('Moving to next bet...');
       }
       
       // Random delay before the next bet (adds variance to appear more human-like)
-      const randomDelay = config.delayBetweenBets + (Math.random() * 2000 - 1000); // +/- 1 second
+      const randomDelay = config.delayBetweenBets + (Math.random() * 3000 - 1500); // +/- 1 second
       console.log(`Waiting ${Math.round(randomDelay / 1000)} seconds before next bet...`);
       await page.waitForTimeout(randomDelay);
     }

@@ -32,6 +32,8 @@ The script uses environment variables from a `.env` file for configuration. You 
 
 ### Additional Options
 - `RANDOM_BET_SIDE` - Randomize which side to bet on (true/false, default: false)
+- `WAIT_FOR_SUCCESS_NOTIFICATION` - Wait for success notification after placing a bet (true/false, default: false)
+- `SUCCESS_NOTIFICATION_TIMEOUT` - How long to wait for success notification in milliseconds (default: 10000)
 
 ### Browser Options
 - `BROWSER` - Which browser to use: 'chrome' or 'firefox' (default: chrome)
@@ -62,6 +64,8 @@ The script uses environment variables from a `.env` file for configuration. You 
 - Error handling for when betting is closed
 - Option to randomize which side to bet on
 - Confirmation of bets through modal dialogs
+- Automatically presses ESC to close any lingering modals
+- Waits for "BET CREATED SUCCESSFULLY" notification before proceeding
 
 ## Troubleshooting
 
@@ -87,6 +91,8 @@ USE_PRESET_AMOUNTS=true
 
 # Additional options
 RANDOM_BET_SIDE=false
+WAIT_FOR_SUCCESS_NOTIFICATION=true
+SUCCESS_NOTIFICATION_TIMEOUT=10000
 
 # Browser options
 BROWSER=chrome
