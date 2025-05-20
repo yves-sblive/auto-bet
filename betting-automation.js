@@ -1,4 +1,4 @@
-const { chromium } = require('playwright');
+const { chromium, firefox } = require('playwright');
 const readline = require('readline');
 require('dotenv').config();
 
@@ -20,6 +20,7 @@ const config = {
   randomBetSide: process.env.RANDOM_BET_SIDE === 'true',              // Randomize which side to bet on
   
   // Browser options
+  browser: process.env.BROWSER || 'chrome',                        // Which browser to use (chrome or firefox)
   kioskMode: process.env.KIOSK_MODE === 'true',                       // Enable kiosk mode
   silentPrinting: process.env.SILENT_PRINTING === 'true',             // Enable silent printing
   disableNotifications: process.env.DISABLE_NOTIFICATIONS === 'true'   // Disable notifications
@@ -105,39 +106,81 @@ function randomizeBetSide() {
 async function runBettingBot() {
   console.log('Starting browser for manual login...');
   
-  // Prepare browser arguments based on config
+  // Prepare browser arguments and preferences based on config
   const browserArgs = [];
+  const firefoxPrefs = {};
   
-  // Add kiosk mode if enabled
-  if (config.kioskMode) {
-    browserArgs.push('--kiosk-printing');
-    browserArgs.push('--start-maximized');
+  // Check which browser to use
+  const browserType = config.browser.toLowerCase();
+  console.log(`Browser selected: ${browserType}`);
+  
+  if (browserType === 'chrome' || browserType === 'chromium') {
+    // Chrome/Chromium specific options
+    
+    // Add kiosk mode if enabled
+    if (config.kioskMode) {
+      browserArgs.push('--kiosk-printing');
+      browserArgs.push('--start-maximized');
+    }
+    
+    // Add silent printing if enabled
+    if (config.silentPrinting) {
+      browserArgs.push('--disable-print-preview');
+      browserArgs.push('--disable-prompt-on-repost');
+    }
+    
+    // Disable notifications if enabled
+    if (config.disableNotifications) {
+      browserArgs.push('--disable-notifications');
+    }
+    
+    // Add some recommended flags for automation
+    browserArgs.push('--disable-extensions');
+    browserArgs.push('--disable-component-extensions-with-background-pages');
+    browserArgs.push('--disable-default-apps');
+    browserArgs.push('--disable-popup-blocking');
+  } else if (browserType === 'firefox') {
+    // Firefox specific options
+    
+    // Add kiosk mode if enabled
+    if (config.kioskMode) {
+      browserArgs.push('-kiosk');
+    }
+    
+    // Add silent printing options if enabled
+    if (config.silentPrinting) {
+      // Firefox uses preferences for silent printing
+      firefoxPrefs['print.always_print_silent'] = true;
+      firefoxPrefs['print.show_print_progress'] = false;
+      firefoxPrefs['print.suppress_dialog_boxes'] = true;
+    }
+    
+    // Disable notifications if enabled
+    if (config.disableNotifications) {
+      firefoxPrefs['dom.webnotifications.enabled'] = false;
+    }
   }
   
-  // Add silent printing if enabled
-  if (config.silentPrinting) {
-    browserArgs.push('--disable-print-preview');
-    browserArgs.push('--disable-prompt-on-repost');
+  // Launch the appropriate browser with settings
+  let browser;
+  if (browserType === 'firefox') {
+    browser = await firefox.launch({
+      headless: false,
+      args: browserArgs,
+      firefoxUserPrefs: firefoxPrefs
+    });
+    console.log('Firefox launched with arguments:', browserArgs.join(' '));
+    if (Object.keys(firefoxPrefs).length > 0) {
+      console.log('Firefox preferences:', JSON.stringify(firefoxPrefs, null, 2));
+    }
+  } else {
+    // Default to Chrome/Chromium
+    browser = await chromium.launch({ 
+      headless: false,
+      args: browserArgs
+    });
+    console.log('Chrome launched with arguments:', browserArgs.join(' '));
   }
-  
-  // Disable notifications if enabled
-  if (config.disableNotifications) {
-    browserArgs.push('--disable-notifications');
-  }
-  
-  // Add some recommended flags for automation
-  browserArgs.push('--disable-extensions');
-  browserArgs.push('--disable-component-extensions-with-background-pages');
-  browserArgs.push('--disable-default-apps');
-  browserArgs.push('--disable-popup-blocking');
-  
-  // Launch the browser with custom arguments
-  const browser = await chromium.launch({ 
-    headless: false,
-    args: browserArgs
-  });
-  
-  console.log('Browser launched with arguments:', browserArgs.join(' '));
   
   // Create a new context with viewport settings
   const context = await browser.newContext({

@@ -9,6 +9,10 @@ This Node.js script automates betting on a sabong betting platform. It uses Play
    ```
    npm install
    ```
+3. Install browsers for Playwright:
+   ```
+   npx playwright install firefox
+   ```
 
 ## Configuration
 
@@ -30,7 +34,8 @@ The script uses environment variables from a `.env` file for configuration. You 
 - `RANDOM_BET_SIDE` - Randomize which side to bet on (true/false, default: false)
 
 ### Browser Options
-- `KIOSK_MODE` - Enable kiosk mode for Chrome (true/false, default: false)
+- `BROWSER` - Which browser to use: 'chrome' or 'firefox' (default: chrome)
+- `KIOSK_MODE` - Enable kiosk mode (true/false, default: false)
 - `SILENT_PRINTING` - Enable silent printing without dialogs (true/false, default: false)
 - `DISABLE_NOTIFICATIONS` - Disable browser notifications (true/false, default: false)
 
@@ -84,6 +89,7 @@ USE_PRESET_AMOUNTS=true
 RANDOM_BET_SIDE=false
 
 # Browser options
+BROWSER=chrome
 KIOSK_MODE=true
 SILENT_PRINTING=true
 DISABLE_NOTIFICATIONS=true
